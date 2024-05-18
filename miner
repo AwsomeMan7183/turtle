@@ -1,0 +1,193 @@
+-- Function to check if the turtle's inventory is full
+local function isInventoryFull()
+    for i = 1, 16 do
+        if turtle.getItemCount(i) == 0 then
+            return false
+        end
+    end
+    return true
+end
+
+-- Function to return the turtle to the surface
+local function returnToSurface(level)
+    for i = 1, level do
+        turtle.up()
+    end
+end
+
+-- Function to return the turtle to the bottom of the mine
+local function returnToBottom(level)
+    for i = 1, level do
+        turtle.down()
+    end
+end
+
+-- Function to unload the turtle's inventory into a chest beside it
+local function unloadInventory()
+    for i = 1, 16 do
+        turtle.select(i)
+        turtle.drop()
+    end
+    turtle.select(1)
+end
+
+-- Function to refuel the turtle from its inventory
+local function refuelFromInventory()
+    for i = 1, 16 do
+        turtle.select(i)
+        if turtle.refuel(1) then
+            return true
+        end
+    end
+    return false
+end
+
+-- Function to refuel the turtle
+local function refuelIfNeeded(level, length, width, posX, posY)
+    if turtle.getFuelLevel() == "unlimited" then
+        return true
+    end
+
+    if turtle.getFuelLevel() < 100 then
+        print("Low on fuel, returning to start...")
+        returnToSurface(level)
+        turtle.turnRight()
+        turtle.turnRight()
+        for i = 1, width - posX do
+            turtle.forward()
+        end
+        turtle.turnLeft()
+        for i = 1, length - posY do
+            turtle.forward()
+        end
+        turtle.turnLeft()
+        
+        print("Unloading inventory...")
+        unloadInventory()
+        sleep(5)
+
+        -- Attempt to refuel from inventory
+        if not refuelFromInventory() then
+            print("Out of fuel!")
+            return false
+        end
+
+        -- Return to mining position
+        for i = 1, length - posY do
+            turtle.forward()
+        end
+        turtle.turnRight()
+        for i = 1, width - posX do
+            turtle.forward()
+        end
+        turtle.turnRight()
+        returnToBottom(level)
+    end
+    return true
+end
+
+-- Function to mine a layer
+local function mineLayer(length, width)
+    local posX, posY = 1, 1
+    for w = 1, width do
+        for l = 1, length - 1 do
+            if not refuelIfNeeded(level, length, width, posX, posY) then
+                return false
+            end
+            turtle.dig()
+            turtle.forward()
+            turtle.digUp()
+            turtle.digDown()
+            posY = posY + 1
+        end
+        if w % 2 == 1 then
+            turtle.turnRight()
+            if not refuelIfNeeded(level, length, width, posX, posY) then
+                return false
+            end
+            turtle.dig()
+            turtle.forward()
+            turtle.digUp()
+            turtle.digDown()
+            turtle.turnRight()
+        else
+            turtle.turnLeft()
+            if not refuelIfNeeded(level, length, width, posX, posY) then
+                return false
+            end
+            turtle.dig()
+            turtle.forward()
+            turtle.digUp()
+            turtle.digDown()
+            turtle.turnLeft()
+        end
+        posX = posX + 1
+        posY = 1
+    end
+    return true
+end
+
+-- Main function
+local function excavate(length, width)
+    local level = 0
+
+    while true do
+        if not refuelIfNeeded(level, length, width, 1, 1) then
+            break
+        end
+        
+        if not mineLayer(length, width) then
+            break
+        end
+
+        turtle.turnRight()
+        turtle.turnRight()
+
+        for i = 1, length - 1 do
+            if not refuelIfNeeded(level, length, width, 1, 1) then
+                break
+            end
+            turtle.forward()
+        end
+
+        turtle.turnRight()
+        for i = 1, width - 1 do
+            if not refuelIfNeeded(level, length, width, 1, 1) then
+                break
+            end
+            turtle.forward()
+        end
+        turtle.turnRight()
+
+        turtle.digDown()
+        turtle.down()
+        level = level + 1
+
+        if isInventoryFull() then
+            print("Inventory full, returning to surface...")
+            returnToSurface(level)
+            unloadInventory()
+            print("Resuming mining...")
+            returnToBottom(level)
+        end
+
+        if not turtle.detectDown() then
+            break
+        end
+    end
+
+    returnToSurface(level)
+    unloadInventory()
+end
+
+-- Main program
+print("Enter the length of the excavation area (forward):")
+local length = tonumber(read())
+print("Enter the width of the excavation area (right):")
+local width = tonumber(read())
+
+if length and width then
+    excavate(length, width)
+else
+    print("Invalid input. Please enter numbers.")
+end
