@@ -42,6 +42,18 @@ local function refuelFromInventory()
     return false
 end
 
+-- Function to refuel the turtle from the chest above
+local function refuelFromChestAbove()
+    turtle.up()
+    for i = 1, 16 do
+        turtle.suck()
+        if turtle.refuel(1) then
+            break
+        end
+    end
+    turtle.down()
+end
+
 -- Function to refuel the turtle
 local function refuelIfNeeded(level, length, width, posX, posY)
     if turtle.getFuelLevel() == "unlimited" then
@@ -64,13 +76,10 @@ local function refuelIfNeeded(level, length, width, posX, posY)
         
         print("Unloading inventory...")
         unloadInventory()
+        
+        print("Refueling from chest above...")
+        refuelFromChestAbove()
         sleep(5)
-
-        -- Attempt to refuel from inventory
-        if not refuelFromInventory() then
-            print("Out of fuel!")
-            return false
-        end
 
         -- Return to mining position
         for i = 1, length - posY do
